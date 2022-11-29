@@ -7,7 +7,6 @@ import datetime
 import pickle as pkl
 
 
-
 def objective(trial):
     
     config = {}
@@ -17,6 +16,10 @@ def objective(trial):
 
     # Learning parameters
     config['gamma'] = 0.999
+
+    config['log_path'] = 'cartpole_rl'+str(datetime.datetime.now()).replace(':','_')
+    config['log_freq'] = int(1e3)
+    config['eval_freq'] = int(2e3)
 
     ###
     config['n_steps'] = trial.suggest_categorical('n_steps', [250, 500, 750])

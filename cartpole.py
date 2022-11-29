@@ -1,9 +1,12 @@
 import gym
 import numpy as np
+import datetime
+
 from stable_baselines3 import PPO
 from stable_baselines3.ppo import MlpPolicy
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback, CallbackList
+from stable_baselines3.common.logger import configure
 
 def train_cart_rl(config):
     
@@ -18,10 +21,21 @@ def train_cart_rl(config):
     # Use a separate environment for evaluation
     eval_env = gym.make('CartPole-v1')
 
-    # Random Agent, before training
-    # mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=100)
+    # Set up the callbacks for the evaluation environment.
+    eval_callback = EvalCallback(eval_env, 
+                                 best_model_save_path=config['log_path'],
+                                 log_path=config['log_path'],
+                                 eval_freq=config['eval_freq'],
+                                 deterministic=False, render=False)
+    
+    # set up logger
+    new_logger = configure(config['log_path'], ["stdout", "csv"])#, "tensorboard"])
+    callbacks = CallbackList([eval_callback])
 
-    # print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
+    # Random Agent, before training
+    mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=100)
+
+    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 
     # Train the agent for 10000 steps
     model.learn(total_timesteps=10000)
@@ -29,12 +43,21 @@ def train_cart_rl(config):
     # Evaluate the trained agent
     mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=100)
 
+    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
+    
+    model.set_logger(new_logger)
+    model.learn(total_timesteps=config['total_timesteps'], log_interval=1, callback=callbacks)
+
     return mean_reward, std_reward
-    #print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 
 if __name__ == "__main__":
 
     config = {}
+
+    config['log_path'] = 'cartpole_rl'+str(datetime.datetime.now()).replace(':','_')
+    config['log_freq'] = int(1e3)
+    config['eval_freq'] = int(2e3)
+    config['total_timesteps'] = int(2e6)
 
     # PPO parameters
     config['n_steps'] = 250
